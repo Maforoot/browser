@@ -16,7 +16,9 @@ class User extends Authenticatable
         'first_name',
         'last_name',
         'email',
-        'interest'
+        'interest',
+        'password',
+        'username'
     ];
     public function login()
     {

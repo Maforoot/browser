@@ -15,8 +15,8 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string',
             'last_name' => 'required|string',
-            'email' => 'nullable|email|unique:users',
-            'username' => 'required|unique:logins',
+            'email' => 'required|email|unique:users',
+            'username' => 'required|unique:users',
             'password' => 'required',
             'interest' => 'nullable',
         ]);
@@ -24,16 +24,9 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
         $input = $validator->validated();
+        $input['password'] = Hash::make($input['password']);
         $user = User::create($input);
-
-        if ($user) {
-            $user->login()->create([
-                'username' => $input['username'],
-                'password' => bcrypt($input['password']),
-                'user_id' => $user->id
-            ]);
-            return $user;
-        }
+        return $user;
     }
 
     public function login(Request $request)
@@ -47,7 +40,7 @@ class AuthController extends Controller
         }
         $input = $validator->validated();
 
-        $userLogin = Login::where('username', $input['username'])->first();
+        $userLogin = User::where('username', $input['username'])->first();
 
         if ($userLogin && Hash::check($input['password'], $userLogin->password)) {
             return response()->json(['user' => $userLogin]);
