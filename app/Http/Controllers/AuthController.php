@@ -25,7 +25,9 @@ class AuthController extends Controller
         }
         $input = $validator->validated();
         $input['password'] = Hash::make($input['password']);
-        $user = User::create($input);
+        $user = User::create([
+            'first_name' => $input['first_name'],
+        ]);
         return $user;
     }
 

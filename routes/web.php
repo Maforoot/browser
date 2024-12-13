@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\HtmlParserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    dd(5);
 });
-//test
+Route::get('/parse-html', [HtmlParserController::class, 'parseFiles']);
+
