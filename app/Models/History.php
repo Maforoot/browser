@@ -8,4 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 class History extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'query_searched',
+    ];
+    public function user()
+    {
+        return $this->hasOne(History::class);
+
+    }
 }

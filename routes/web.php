@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\HtmlParserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,9 +12,4 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
-
-Route::get('/', function () {
-    dd(5);
-});
-Route::get('/parse-html', [HtmlParserController::class, 'parseFiles']);
 

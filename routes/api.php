@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\IndexController;
 use App\Http\Controllers\SearchController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,5 @@ Route::prefix('auth')->group(function () {
     Route::post("/login", [AuthController::class, 'login']);
     Route::post("/register", [AuthController::class, 'register']);
 });
-Route::get('/index-documents', [SearchController::class, 'indexDocuments']);
+Route::get('/index-documents', [IndexController::class, 'indexDocuments']);
 Route::get('/search', [SearchController::class, 'search']);
-Route::get('/suggest', [SearchController::class, 'suggest']);
