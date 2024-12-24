@@ -4,10 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\History;
 use Elastic\Elasticsearch\ClientBuilder;
-use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class SearchController extends Controller
@@ -23,19 +20,37 @@ class SearchController extends Controller
 
     public function search(Request $request)
     {
+
         $query = $request->input('query');
         $size = $request->input('size', 5); // تعداد نتایج در هر صفحه (پیش‌فرض 10)
         $page = $request->input('page', 1); // شماره صفحه (پیش‌فرض 1)
         $user_id = $request->input('user_id');
         // محاسبه مقدار 'from' که می‌گوید از کدام نتیجه شروع کنیم
         $from = ($page - 1) * $size;
-
         $params = [
             'index' => 'document1',
             'body' => [
                 'query' => [
                     'bool' => [
                         'should' => [
+                            [
+                                'match' => [
+                                    'title' => [
+                                        'query' => $query,
+                                        'operator' => 'AND',
+                                        'fuzziness' => 2,
+                                        'boost' => 30,
+                                    ],
+                                ],
+                            ],
+                            [
+                                'match_phrase_prefix' => [
+                                    'title' => [
+                                        'query' => $query,
+                                        'boost' => 200,
+                                    ],
+                                ],
+                            ],
                             [
                                 'match_phrase' => [
                                     'body' => [
@@ -53,24 +68,7 @@ class SearchController extends Controller
                                     ],
                                 ],
                             ],
-                            [
-                                'match' => [
-                                    'title' => [
-                                        'query' => $query,
-                                        'operator' => 'AND',
-                                        'fuzziness' => 2,
-                                        'boost' => 30,
-                                    ],
-                                ],
-                            ],
-                            [
-                                'match_phrase_prefix' => [
-                                    'title' => [
-                                        'query' => $query,
-                                        'boost' => 60,
-                                    ],
-                                ],
-                            ],
+
                             [
                                 'prefix' => [
                                     'body' => [
@@ -133,7 +131,7 @@ class SearchController extends Controller
         $this->history($user_id, $query);
         // ساخت نتایج جستجو برای ارسال به کاربر
         $results = collect($response['hits']['hits'])->map(function ($hit) {
-            $highlightedBody = $hit['highlight']['body'][1] ?? 'متنی برای نمایش وجود ندارد';
+            $highlightedBody = $hit['highlight']['body'][0] ?? 'متنی برای نمایش وجود ندارد';
             return [
                 'id' => $hit['_id'],
                 'url' => $hit['_source']['url'] ?? null,

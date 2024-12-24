@@ -41,7 +41,7 @@ class IndexController extends Controller
                             'edge_ngram_tokenizer' => [
                                 'type' => 'edge_ngram',
                                 'min_gram' => 2, // طول حداقل توکن‌ها
-                                'max_gram' => 7, // طول حداکثر توکن‌ها
+                                'max_gram' => 10, // طول حداکثر توکن‌ها
                                 'token_chars' => ['letter', 'digit'], // کاراکترهای مجاز برای توکن‌ها
                             ],
                         ],
@@ -66,10 +66,6 @@ class IndexController extends Controller
                             'search_analyzer' => 'persian_analyzer',
                         ],
                         'url' => ['type' => 'keyword'],
-                        'suggest' => [
-                            'type' => 'completion', // فیلد ساجسشن
-                            'analyzer' => 'persian_analyzer',
-                        ],
                     ],
                 ],
             ],
@@ -94,9 +90,9 @@ class IndexController extends Controller
             try {
                 if (Storage::exists($file)) {
                     $content = Storage::get($file);
-                    $parsed = HelperController::class->parseHtml($content);
+                    $parsed = app(HelperController::class)->parseHtml($content);
 
-                    $url = HelperController::class->extractUrl($content);
+                    $url = app(HelperController::class)->extractUrl($content);
 
                     $params = [
                         'index' => 'document1',

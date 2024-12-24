@@ -75,8 +75,8 @@ class HelperController extends Controller
         $bodyText = $body->textContent ?? null;
 
         // نرمال‌سازی متن
-        $title = HelperController::class->normalizeText($title);
-        $bodyText = HelperController::class->normalizeText($bodyText);
+        $title = $this->normalizeText($title);
+        $bodyText = $this->normalizeText($bodyText);
 
         return [
             'title' => $title,
