@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\History;
 use Elastic\Elasticsearch\ClientBuilder;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class SearchController extends Controller
@@ -39,7 +41,7 @@ class SearchController extends Controller
                                         'query' => $query,
                                         'operator' => 'AND',
                                         'fuzziness' => 2,
-                                        'boost' => 30,
+                                        'boost' => 45,
                                     ],
                                 ],
                             ],
@@ -47,7 +49,7 @@ class SearchController extends Controller
                                 'match_phrase_prefix' => [
                                     'title' => [
                                         'query' => $query,
-                                        'boost' => 200,
+                                        'boost' => 20,
                                     ],
                                 ],
                             ],
@@ -55,7 +57,7 @@ class SearchController extends Controller
                                 'match_phrase' => [
                                     'body' => [
                                         'query' => $query,
-                                        'boost' => 150,
+                                        'boost' => 15,
                                     ],
                                 ],
                             ],
@@ -64,15 +66,6 @@ class SearchController extends Controller
                                     'body' => [
                                         'query' => $query,
                                         'fuzziness' => 2,
-                                        'boost' => 15,
-                                    ],
-                                ],
-                            ],
-
-                            [
-                                'prefix' => [
-                                    'body' => [
-                                        'value' => $query,
                                         'boost' => 10,
                                     ],
                                 ],
@@ -100,7 +93,7 @@ class SearchController extends Controller
                                             'match_phrase' => [
                                                 'body' => [
                                                     'query' => $query,
-                                                    'boost' => 150,
+                                                    'boost' => 30,
                                                 ],
                                             ],
                                         ],
@@ -126,12 +119,13 @@ class SearchController extends Controller
             ],
         ];
 
-
+        $start_time = microtime(true);
         $response = $this->client->search($params);
-        $this->history($user_id, $query);
+        app(HistoryController::class)->save_history($user_id, $query);
         // ساخت نتایج جستجو برای ارسال به کاربر
+
         $results = collect($response['hits']['hits'])->map(function ($hit) {
-            $highlightedBody = $hit['highlight']['body'][0] ?? 'متنی برای نمایش وجود ندارد';
+            $highlightedBody = $hit['highlight']['body'][1] ?? 'متنی برای نمایش وجود ندارد';
             return [
                 'id' => $hit['_id'],
                 'url' => $hit['_source']['url'] ?? null,
@@ -139,6 +133,9 @@ class SearchController extends Controller
                 'body' => $highlightedBody . '...',
             ];
         });
+        $end_time = microtime(true);
+        $total_time = round(($end_time - $start_time) * 1000);
+
 
         // ارسال نتایج به همراه اطلاعات صفحه‌بندی
         return response()->json([
@@ -146,27 +143,40 @@ class SearchController extends Controller
             'total' => $response['hits']['total']['value'], // تعداد کل نتایج
             'page' => (int)$page,
             'size' => $size,
+            'time' => $total_time,
+            'search' => $query
         ]);
     }
-
-    private function history($id, $query_searched)
+    public function getSuggestions(Request $request)
     {
-        $validator = Validator::make(['id' => $id, 'query_searched' => $query_searched], [
-            'query_searched' => 'required|string',
-            'id' => 'required|integer|exists:users,id',
-        ]);
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-        $input = $validator->validated();
+        $query = $request->input('query');
 
-        $history = History::create([
-            'user_id' => $input['id'],
-            'query_searched' => $input['query_searched'],
-        ]);
-        if ($history) {
-            return response()->json(['successful' => true], 200);
+        $params = [
+            'index' => 'document1',
+            'body' => [
+                'suggest' => [
+                    'document-suggest' => [
+                        'prefix' => $query,
+                        'completion' => [
+                            'field' => 'suggest',
+                            'size' => 10, // تعداد پیشنهادات منحصر به فرد
+                            'skip_duplicates' => true, // جلوگیری از بازگرداندن مقادیر تکراری
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        try {
+            $response = $this->client->search($params);
+            $suggestions = $response['suggest']['document-suggest'][0]['options'] ?? [];
+
+            return response()->json([
+                'suggestions' => array_map(fn($option) => $option['text'], $suggestions),
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error fetching suggestions', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error fetching suggestions'], 500);
         }
     }
-
 }

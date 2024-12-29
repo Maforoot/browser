@@ -41,7 +41,7 @@ class IndexController extends Controller
                             'edge_ngram_tokenizer' => [
                                 'type' => 'edge_ngram',
                                 'min_gram' => 2, // طول حداقل توکن‌ها
-                                'max_gram' => 10, // طول حداکثر توکن‌ها
+                                'max_gram' => 8, // طول حداکثر توکن‌ها
                                 'token_chars' => ['letter', 'digit'], // کاراکترهای مجاز برای توکن‌ها
                             ],
                         ],
@@ -66,6 +66,14 @@ class IndexController extends Controller
                             'search_analyzer' => 'persian_analyzer',
                         ],
                         'url' => ['type' => 'keyword'],
+                        'suggest' => [
+                            'type' => 'completion',
+                            'analyzer' => 'persian_analyzer',
+                            'preserve_separators' => true,
+                            'preserve_position_increments' => true,
+                            'max_input_length' => 50
+
+                        ],
                     ],
                 ],
             ],
@@ -94,16 +102,39 @@ class IndexController extends Controller
 
                     $url = app(HelperController::class)->extractUrl($content);
 
+                    $title = $parsed['title'] ?? 'بدون عنوان';
+
+                    if (str_contains($title, 'دانشگاه علم و صنعت ایران')) {
+                        Log::info("Skipped indexing for file: $file due to filtered title: $title");
+                        continue;
+                    }
+
+                    // محاسبه طول عنوان
+                    $maxLength = 100; // طول حداکثری فرضی برای تنظیم وزن معکوس
+                    $titleLength = strlen($title);
+
+                    $weight = $maxLength - $titleLength;
+                    $weight = $weight > 0 ? $weight : 1; // اگر وزن منفی شد، حداقل وزن را ۱ قرار بده
+
                     $params = [
                         'index' => 'document1',
                         'id' => $key,
                         'body' => [
-                            'title' => $parsed['title'] ?? 'بدون عنوان',
+                            'title' => $title ?? 'بدون عنوان',
                             'body' => $parsed['body'] ?? '',
-                            'file_path' => $file,
                             'url' => $url,
+                            'suggest' => [
+                                'input' => [
+                                    $parsed['title'] ?? 'بدون عنوان',
+                                    $parsed['body'] ?? '',
+                                ],
+                                'weight' => $weight
+                            ],
                         ],
                     ];
+
+
+
 
                     $this->client->index($params);
                 }

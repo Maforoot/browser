@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\IndexController;
 use App\Http\Controllers\SearchController;
 use Illuminate\Http\Request;
@@ -18,8 +19,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('auth')->group(function () {
-    Route::post("/login", [AuthController::class, 'login']);
-    Route::post("/register", [AuthController::class, 'register']);
+    Route::get("/login", [AuthController::class, 'login']);
+    Route::get("/register", [AuthController::class, 'register']);
 });
 Route::get('/index-documents', [IndexController::class, 'indexDocuments']);
 Route::get('/search', [SearchController::class, 'search']);
+Route::get('/suggestions', [SearchController::class, 'getSuggestions']);
+Route::get('/histories', [HistoryController::class, 'return_histories']);
